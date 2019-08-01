@@ -1,0 +1,60 @@
+# Deployment Workloads
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp
+spec:
+  selector:
+    matchLabels:
+      app: webapp
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: webapp
+    spec:
+      containers:
+      - name: webapp
+        image:  richardchesterwood/k8s-fleetman-webapp-angular:release0-5
+        # readinessProbe:  # Tunggu sampai container ready, baru bisa ditembak/request (Health-check dulu ya)
+        #   httpGet:
+        #     path: /
+        #     port: 80
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "100M"
+
+
+#Services
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name:  webapp
+spec:
+  selector:
+    app:  webapp
+  type: NodePort
+  ports:
+  - name: http
+    port: 80
+    nodePort: 30080
+
+
+# Autoscalling-Rules
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name:  webapp
+  namespace: default
+spec:
+  maxReplicas: 15
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name:  webapp
+  targetCPUUtilizationPercentage: 200 #dalam percent, setelah setup request CPU di yaml Deployment
